@@ -17,7 +17,10 @@ export function useSpotifyAuth() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   // Check if we're in the OAuth callback
-  const isAuthCallback = window.location.search.includes("code=");
+  // Note: Handle both query params and hash-based routing
+  const isAuthCallback = window.location.search.includes("code=") || 
+                         window.location.hash.includes("?code=") || 
+                         window.location.hash.includes("&code=");
 
   useEffect(() => {
     const checkAuthentication = async () => {
@@ -25,7 +28,23 @@ export function useSpotifyAuth() {
       try {
         if (isAuthCallback) {
           console.log("Processing auth callback...");
-          const success = await handleAuthCallback();
+          // Extract code from URL, handling both query params and hash-based routing
+          let code = "";
+          const searchParams = new URLSearchParams(window.location.search);
+          code = searchParams.get("code") || "";
+          
+          // If code wasn't found in search params, check the hash
+          if (!code && window.location.hash) {
+            // Remove the '#/' prefix if it exists (for HashRouter)
+            const hashContent = window.location.hash.replace(/^#\/?/, '');
+            const hashParams = new URLSearchParams(hashContent.includes('?') ? 
+              hashContent.substring(hashContent.indexOf('?')) : hashContent);
+            code = hashParams.get("code") || "";
+          }
+          
+          console.log("Auth code found:", code ? "Yes (length: " + code.length + ")" : "No");
+          
+          const success = await handleAuthCallback(code);
           setIsAuthenticated(success);
           if (!success) {
             setAuthError("Failed to complete authentication");

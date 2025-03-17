@@ -1,18 +1,31 @@
-
 import { toast } from "sonner";
 
 // Spotify API endpoints
-const SPOTIFY_AUTH_ENDPOINT = "https://accounts.spotify.com/authorize";
-const SPOTIFY_TOKEN_ENDPOINT = "https://accounts.spotify.com/api/token";
-const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
+const AUTH_ENDPOINT = "https://accounts.spotify.com/authorize";
+const TOKEN_ENDPOINT = "https://accounts.spotify.com/api/token";
+const API_ENDPOINT = "https://api.spotify.com/v1";
 
 // Your Spotify App credentials (these are public credentials intended for client-side auth)
 const CLIENT_ID = "1a70ba777fec4ffd9633c0c418246310"; // This is a placeholder ID, replace with your real Spotify Client ID
 
-// Fix: Configure redirect URI for GitHub Pages deployment
-// For local development, this will use the current location
-// For GitHub Pages, this will be https://yourusername.github.io/repositoryname/
-const REDIRECT_URI = window.location.origin + window.location.pathname;
+// For GitHub Pages compatibility
+const isGitHubPages = window.location.hostname.includes("github.io");
+
+// Configure redirect URI based on whether we're using hash router (GitHub Pages) or not
+const getRedirectUri = () => {
+  if (isGitHubPages) {
+    // For GitHub Pages with hash router, we need to ensure the callback works correctly
+    // Remove the hash part and return just the origin with path
+    const origin = window.location.origin;
+    const pathname = window.location.pathname;
+    return origin + pathname;
+  } else {
+    // For regular development or non-GitHub Pages deployment
+    return window.location.origin + window.location.pathname;
+  }
+};
+
+const REDIRECT_URI = getRedirectUri();
 
 // Log the redirect URI for debugging
 console.log("Spotify Redirect URI:", REDIRECT_URI);
@@ -26,6 +39,11 @@ const SCOPES = [
   "user-read-email",
   "user-read-private",
 ];
+
+// Local storage keys
+const ACCESS_TOKEN_KEY = "spotify_access_token";
+const REFRESH_TOKEN_KEY = "spotify_refresh_token";
+const TOKEN_EXPIRY_KEY = "spotify_token_expiry";
 
 // Generate a random string for state verification
 const generateRandomString = (length: number) => {
@@ -69,7 +87,7 @@ export const getSpotifyLoginUrl = async () => {
     scope: SCOPES.join(" "),
   });
   
-  return `${SPOTIFY_AUTH_ENDPOINT}?${params.toString()}`;
+  return `${AUTH_ENDPOINT}?${params.toString()}`;
 };
 
 // Exchange authorization code for tokens
@@ -89,7 +107,7 @@ export const getAccessToken = async (code: string) => {
   });
   
   try {
-    const response = await fetch(SPOTIFY_TOKEN_ENDPOINT, {
+    const response = await fetch(TOKEN_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -107,9 +125,9 @@ export const getAccessToken = async (code: string) => {
     
     // Save tokens to local storage
     const expiresAt = Date.now() + data.expires_in * 1000;
-    localStorage.setItem("spotify_access_token", data.access_token);
-    localStorage.setItem("spotify_refresh_token", data.refresh_token);
-    localStorage.setItem("spotify_token_expires_at", expiresAt.toString());
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
+    localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
+    localStorage.setItem(TOKEN_EXPIRY_KEY, expiresAt.toString());
     
     return data.access_token;
   } catch (error) {
@@ -121,7 +139,7 @@ export const getAccessToken = async (code: string) => {
 
 // Refresh access token when it expires
 export const refreshAccessToken = async () => {
-  const refreshToken = localStorage.getItem("spotify_refresh_token");
+  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
   
   if (!refreshToken) {
     throw new Error("No refresh token found");
@@ -134,7 +152,7 @@ export const refreshAccessToken = async () => {
   });
   
   try {
-    const response = await fetch(SPOTIFY_TOKEN_ENDPOINT, {
+    const response = await fetch(TOKEN_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -150,11 +168,11 @@ export const refreshAccessToken = async () => {
     
     // Update tokens in local storage
     const expiresAt = Date.now() + data.expires_in * 1000;
-    localStorage.setItem("spotify_access_token", data.access_token);
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
     if (data.refresh_token) {
-      localStorage.setItem("spotify_refresh_token", data.refresh_token);
+      localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
     }
-    localStorage.setItem("spotify_token_expires_at", expiresAt.toString());
+    localStorage.setItem(TOKEN_EXPIRY_KEY, expiresAt.toString());
     
     return data.access_token;
   } catch (error) {
@@ -165,8 +183,8 @@ export const refreshAccessToken = async () => {
 
 // Get a valid access token, refreshing if necessary
 export const getValidAccessToken = async () => {
-  const accessToken = localStorage.getItem("spotify_access_token");
-  const expiresAt = localStorage.getItem("spotify_token_expires_at");
+  const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+  const expiresAt = localStorage.getItem(TOKEN_EXPIRY_KEY);
   
   if (!accessToken || !expiresAt) {
     return null;
@@ -185,7 +203,7 @@ export const getValidAccessToken = async () => {
 };
 
 // Check if user is authenticated
-export const isAuthenticated = async () => {
+export const isAuthenticated = async (): Promise<boolean> => {
   try {
     const token = await getValidAccessToken();
     return !!token;
@@ -196,9 +214,9 @@ export const isAuthenticated = async () => {
 
 // Logout - clear all Spotify auth data
 export const logout = () => {
-  localStorage.removeItem("spotify_access_token");
-  localStorage.removeItem("spotify_refresh_token");
-  localStorage.removeItem("spotify_token_expires_at");
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(TOKEN_EXPIRY_KEY);
   localStorage.removeItem("spotify_code_verifier");
   localStorage.removeItem("spotify_auth_state");
 };
@@ -223,7 +241,7 @@ const apiRequest = async (endpoint: string, method = "GET", body?: any) => {
     options.body = JSON.stringify(body);
   }
   
-  const response = await fetch(`${SPOTIFY_API_BASE}${endpoint}`, options);
+  const response = await fetch(`${API_ENDPOINT}${endpoint}`, options);
   
   if (!response.ok) {
     if (response.status === 401) {
@@ -289,23 +307,25 @@ export const setVolume = (volumePercent: number, deviceId?: string) => {
 export const getPlayerState = () => apiRequest("/me/player");
 
 // Handle the auth callback
-export const handleAuthCallback = async () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const code = urlParams.get("code");
-  const state = urlParams.get("state");
-  const storedState = localStorage.getItem("spotify_auth_state");
-  const error = urlParams.get("error");
-  
-  if (error) {
-    console.error("Authentication error:", error);
-    toast.error(`Authentication error: ${error}`);
-    return false;
+export const handleAuthCallback = async (code?: string): Promise<boolean> => {
+  if (!code) {
+    // Extract code from URL if not provided
+    const urlParams = new URLSearchParams(window.location.search);
+    code = urlParams.get("code") || "";
+    
+    // If code wasn't found in search params and we're using hash router, check the hash
+    if (!code && isGitHubPages && window.location.hash) {
+      // Remove the '#/' prefix if it exists (for HashRouter)
+      const hashContent = window.location.hash.replace(/^#\/?/, '');
+      const hashParams = new URLSearchParams(hashContent.includes('?') ? 
+        hashContent.substring(hashContent.indexOf('?')) : hashContent);
+      code = hashParams.get("code") || "";
+    }
   }
   
-  if (!code || !state || state !== storedState) {
-    console.error("State mismatch or missing code", { state, storedState, code });
-    toast.error("Authentication failed. Please try again.");
-    return false;
+  if (!code) {
+    console.error("No authorization code found in URL");
+    throw new Error("No authorization code found");
   }
   
   try {
@@ -315,8 +335,7 @@ export const handleAuthCallback = async () => {
     return true;
   } catch (error) {
     console.error("Error handling auth callback:", error);
-    toast.error("Authentication failed. Please try again.");
-    return false;
+    throw error;
   }
 };
 

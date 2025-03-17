@@ -3,11 +3,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, HashRouter } from "react-router-dom";
 import { LazyMotion, domAnimation } from "framer-motion";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
+// Use HashRouter for GitHub Pages compatibility
+const isGitHubPages = window.location.hostname.includes("github.io");
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -16,13 +18,23 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner richColors />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        {isGitHubPages ? (
+          // Use HashRouter for GitHub Pages
+          <HashRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </HashRouter>
+        ) : (
+          // Use BrowserRouter for local development
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        )}
       </TooltipProvider>
     </LazyMotion>
   </QueryClientProvider>
