@@ -68,6 +68,7 @@ export function useSpotifyAuth() {
   const login = async () => {
     try {
       console.log("Starting login process...");
+      console.log("Current location:", window.location.href);
       setAuthError(null);
       const loginUrl = await getSpotifyLoginUrl();
       console.log("Redirecting to:", loginUrl);

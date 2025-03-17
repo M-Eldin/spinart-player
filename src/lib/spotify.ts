@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 
 // Spotify API endpoints
@@ -7,7 +8,14 @@ const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
 
 // Your Spotify App credentials (these are public credentials intended for client-side auth)
 const CLIENT_ID = "1a70ba777fec4ffd9633c0c418246310"; // This is a placeholder ID, replace with your real Spotify Client ID
-const REDIRECT_URI = window.location.origin + window.location.pathname; // Fix: Use exact path to match what's registered in Spotify Dashboard
+
+// Fix: Configure redirect URI for GitHub Pages deployment
+// For local development, this will use the current location
+// For GitHub Pages, this will be https://yourusername.github.io/repositoryname/
+const REDIRECT_URI = window.location.origin + window.location.pathname;
+
+// Log the redirect URI for debugging
+console.log("Spotify Redirect URI:", REDIRECT_URI);
 
 const SCOPES = [
   "user-read-currently-playing",
@@ -302,7 +310,7 @@ export const handleAuthCallback = async () => {
   
   try {
     await getAccessToken(code);
-    // Clean up URL
+    // Clean up URL without navigating (important for GitHub Pages)
     window.history.replaceState({}, document.title, window.location.pathname);
     return true;
   } catch (error) {

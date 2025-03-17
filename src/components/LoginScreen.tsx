@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 
 export const LoginScreen = () => {
   const { login, authError } = useSpotifyAuth();
+  const currentUrl = window.location.origin + window.location.pathname;
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-black p-6">
@@ -48,6 +49,9 @@ export const LoginScreen = () => {
                 <div className="mt-1 text-red-300">
                   Make sure you've registered the exact redirect URI in your Spotify Developer Dashboard.
                 </div>
+                <div className="mt-1 text-red-300 font-mono text-[10px] break-all">
+                  Redirect URI: {currentUrl}
+                </div>
               </div>
             )}
             <button
@@ -77,14 +81,16 @@ export const LoginScreen = () => {
         </motion.div>
 
         <motion.div 
-          className="text-xs text-zinc-500 text-center"
+          className="text-center text-xs text-zinc-500 space-y-2"
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.7 }}
           transition={{ delay: 1, duration: 0.8 }}
         >
-          Requires a Spotify account.
-          <br />
-          Premium account recommended for full playback control.
+          <p>Requires a Spotify account. Premium account recommended for full playback control.</p>
+          <p className="text-[10px] text-zinc-600">
+            For GitHub Pages, add this exact URI to your Spotify Dashboard:
+            <span className="block mt-1 font-mono break-all">{currentUrl}</span>
+          </p>
         </motion.div>
       </motion.div>
     </div>
