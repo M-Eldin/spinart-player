@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 // Spotify API endpoints
@@ -8,7 +7,8 @@ const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
 
 // Your Spotify App credentials (these are public credentials intended for client-side auth)
 const CLIENT_ID = "1a70ba777fec4ffd9633c0c418246310"; // This is a placeholder ID, replace with your real Spotify Client ID
-const REDIRECT_URI = window.location.origin;
+const REDIRECT_URI = window.location.origin + window.location.pathname; // Fix: Use exact path to match what's registered in Spotify Dashboard
+
 const SCOPES = [
   "user-read-currently-playing",
   "user-read-playback-state",
@@ -90,7 +90,9 @@ export const getAccessToken = async (code: string) => {
     });
     
     if (!response.ok) {
-      throw new Error("Failed to get access token");
+      const errorData = await response.json();
+      console.error("Token exchange error:", errorData);
+      throw new Error(`Failed to get access token: ${errorData.error}`);
     }
     
     const data = await response.json();
@@ -287,11 +289,13 @@ export const handleAuthCallback = async () => {
   const error = urlParams.get("error");
   
   if (error) {
+    console.error("Authentication error:", error);
     toast.error(`Authentication error: ${error}`);
     return false;
   }
   
   if (!code || !state || state !== storedState) {
+    console.error("State mismatch or missing code", { state, storedState, code });
     toast.error("Authentication failed. Please try again.");
     return false;
   }

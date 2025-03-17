@@ -3,7 +3,7 @@ import { useSpotifyAuth } from "@/hooks/use-spotify-auth";
 import { motion } from "framer-motion";
 
 export const LoginScreen = () => {
-  const { login } = useSpotifyAuth();
+  const { login, authError } = useSpotifyAuth();
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-black p-6">
@@ -42,6 +42,14 @@ export const LoginScreen = () => {
             <p className="text-white mb-6">
               Connect your Spotify account to get started with your vinyl experience.
             </p>
+            {authError && (
+              <div className="bg-red-900/50 border border-red-700 text-red-200 p-3 rounded-md mb-4 text-xs">
+                Error connecting to Spotify: {authError}
+                <div className="mt-1 text-red-300">
+                  Make sure you've registered the exact redirect URI in your Spotify Developer Dashboard.
+                </div>
+              </div>
+            )}
             <button
               onClick={login}
               className="login-button"
