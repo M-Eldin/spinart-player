@@ -1,14 +1,34 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useSpotifyAuth } from "@/hooks/use-spotify-auth";
+import { LoginScreen } from "@/components/LoginScreen";
+import { RecordPlayer } from "@/components/RecordPlayer";
+import { motion } from "framer-motion";
 
 const Index = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+  const { isAuthenticated, isLoading } = useSpotifyAuth();
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-b from-zinc-900 to-black">
+        <motion.div
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ repeat: Infinity, duration: 1.5 }}
+          className="text-white text-lg font-medium"
+        >
+          Loading...
+        </motion.div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Show login screen if not authenticated
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
+
+  // Show record player if authenticated
+  return <RecordPlayer />;
 };
 
 export default Index;
